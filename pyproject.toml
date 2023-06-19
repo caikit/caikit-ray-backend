@@ -1,0 +1,26 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "caikit-ray-backend"
+# Not the actual current version: overwritten by CI
+version = "0.0.1"
+description = "Caikit Ray Backend"
+license = {text = "Apache-2.0"}
+readme = "README.md"
+requires-python = "~=3.9"
+classifiers=[
+    "License :: OSI Approved :: Apache Software License"
+]
+dependencies = [
+    "caikit==0.8.0",
+    "ray[default]==2.5.0",
+    "pydantic"
+]
+
+[project.scripts]
+ray_submitter = "caikit_ray_backend.ray_submitter:main"
+
+[project.urls]
+Source = "https://github.com/caikit/caikit-ray-backend"

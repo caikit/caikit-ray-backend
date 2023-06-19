@@ -1,0 +1,3 @@
+# Library specific configuration
+runtime:
+    library: caikit_ray_backend

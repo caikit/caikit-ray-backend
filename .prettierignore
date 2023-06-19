@@ -1,0 +1,6 @@
+# Ignore this test json file
+driver.py
+# ignore jsonl files
+*.jsonl
+**/.github
+*.md
