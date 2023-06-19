@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Build Caikit NLP Library
+name: Build Caikit Ray Backend Library
 
 on:
   push:
