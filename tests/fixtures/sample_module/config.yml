@@ -5,7 +5,7 @@ name: SampleModule
 saved: "2022-11-21 21:51:18.761501"
 tracking_id: 0fc3c53c-37f3-44bf-b90e-5135871ba1bf
 train:
-    batch_size: 64
-    learning_rate: 0.0015
+  batch_size: 64
+  learning_rate: 0.0015
 version: 0.0.1
 sample_lib_version: 1.2.3

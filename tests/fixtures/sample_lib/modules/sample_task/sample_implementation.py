@@ -4,6 +4,11 @@ A sample module for sample things!
 # Standard
 import os
 
+# First Party
+from caikit.core.data_model import DataStream
+from caikit.core.modules import ModuleLoader, ModuleSaver
+import caikit.core
+
 # Local
 from ...data_model.sample import (
     SampleInputType,
@@ -11,9 +16,6 @@ from ...data_model.sample import (
     SampleTask,
     SampleTrainingType,
 )
-from caikit.core.data_model import DataStream
-from caikit.core.modules import ModuleLoader, ModuleSaver
-import caikit.core
 
 
 @caikit.core.module(

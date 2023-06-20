@@ -13,28 +13,28 @@
 # limitations under the License.
 
 # Standard
+from typing import Optional
 import base64
 import pickle
 import uuid
-from typing import Optional
 
 # Third Party
 from ray.job_submission import JobStatus
 
 # First Party
-import alog
-from caikit.core.toolkit.errors import error_handler
 from caikit.core.modules import ModuleBase
+from caikit.core.toolkit.errors import error_handler
+import alog
+
+# Local
 from caikit_ray_backend.base import SharedTrainBackendBase
 from caikit_ray_backend.ray_backend import RayBackend
-
 
 logger = alog.use_channel("<RYT_BLK>")
 error = error_handler.get(logger)
 
 
 class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
-
     def __init__(self, config: Optional[dict] = None) -> None:
         """Function to initialize the RayJobTrainModule.
 
@@ -48,24 +48,25 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
         """
         super().__init__(config=config)
 
-    def __del__(self):
-        return super().__del__()
-
     class RayTrainModelFuture(SharedTrainBackendBase.ModelFuture):
 
-        status_map = {JobStatus.FAILED: SharedTrainBackendBase.TrainingStatus.ERRORED,
-                JobStatus.PENDING: SharedTrainBackendBase.TrainingStatus.QUEUED,
-                JobStatus.RUNNING: SharedTrainBackendBase.TrainingStatus.RUNNING,
-                JobStatus.STOPPED: SharedTrainBackendBase.TrainingStatus.QUEUED,
-                JobStatus.SUCCEEDED: SharedTrainBackendBase.TrainingStatus.COMPLETED}
+        status_map = {
+            JobStatus.FAILED: SharedTrainBackendBase.TrainingStatus.ERRORED,
+            JobStatus.PENDING: SharedTrainBackendBase.TrainingStatus.QUEUED,
+            JobStatus.RUNNING: SharedTrainBackendBase.TrainingStatus.RUNNING,
+            JobStatus.STOPPED: SharedTrainBackendBase.TrainingStatus.QUEUED,
+            JobStatus.SUCCEEDED: SharedTrainBackendBase.TrainingStatus.COMPLETED,
+        }
 
-        def __init__(self, ray_be: RayBackend, ray_job_id: str, save_path = None):
+        def __init__(self, ray_be: RayBackend, ray_job_id: str, save_path=None):
             self._ray_be = ray_be
             self._ray_job_id = ray_job_id
             self._id = "caikit_ray_train_" + str(uuid.uuid4())
             self._save_path = save_path
 
-        def status_mapper(self, ray_job_status: JobStatus) -> SharedTrainBackendBase.TrainingStatus:
+        def status_mapper(
+            self, ray_job_status: JobStatus
+        ) -> SharedTrainBackendBase.TrainingStatus:
             return self.status_map.get(ray_job_status)
 
         @property
@@ -104,17 +105,17 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
     def _obj_to_txt(obj):
         message_bytes = pickle.dumps(obj)
         base64_bytes = base64.b64encode(message_bytes)
-        txt = base64_bytes.decode('ascii')
+        txt = base64_bytes.decode("ascii")
         return txt
 
     def train(
         self,
         module_class: str,
-        save_path: Optional[str] = None,
+        *args,
         num_gpus: int = None,
         num_cpus: int = None,
-        *args,
-        **kwargs,
+        save_path: str = None,
+        **kwargs
     ) -> RayTrainModelFuture:
         """
         This method will launch a Ray job which will in turn call the train() and save() methods
@@ -150,7 +151,7 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
 
         error.type_check("<RYT94736704E>", str, module_class=module_class)
 
-        env_vars = {"module_class" : self._obj_to_txt(module_class)}
+        env_vars = {"module_class": self._obj_to_txt(module_class)}
 
         if save_path:
             error.type_check("<RYT69631537E>", str, save_path=save_path)
@@ -173,7 +174,7 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
         # Serialize **kwargs and add them to environment variables
         my_kwargs = {}
         for key, value in kwargs.items():
-            my_kwargs[key] =self._obj_to_txt(value)
+            my_kwargs[key] = self._obj_to_txt(value)
         env_vars["kwargs"] = my_kwargs
 
         # Serialize *args and add them to environment variables
@@ -182,7 +183,9 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
             my_args.append(self._obj_to_txt(arg))
         env_vars["args"] = my_args
 
-        job_id = ray_job_client.submit_job(entrypoint="ray_submitter", runtime_env=env_vars)
+        job_id = ray_job_client.submit_job(
+            entrypoint="ray_submitter", runtime_env=env_vars
+        )
 
         model_future = self.RayTrainModelFuture(self, job_id, save_path)
 

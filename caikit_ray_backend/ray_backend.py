@@ -19,7 +19,6 @@ from typing import Dict, Optional
 
 # Third Party
 from ray.job_submission import JobSubmissionClient
-from ray.cluster_utils import Cluster
 import ray
 
 # First Party
@@ -71,7 +70,6 @@ class RayBackend(BackendBase):
                 self._address,
             )
 
-
     def __del__(self):
         self.stop()
 
@@ -87,8 +85,8 @@ class RayBackend(BackendBase):
 
     def start(self):
         """Start backend, initializing the client"""
-        #if self._local_ray: #and not ray.is_initialized():
-            #ray.init(ignore_reinit_error=True, include_dashboard=True)
+        # if self._local_ray: #and not ray.is_initialized():
+        # ray.init(ignore_reinit_error=True, include_dashboard=True)
         self._setup_job_client()
         self._started = True
 
@@ -111,24 +109,17 @@ class RayBackend(BackendBase):
 
     def _setup_job_client(self):
         if self._client:
-            log.warn(
+            log.warning(
                 "<RBE20236241W>",
-                "Ray job client already initialized, no further action taken."
+                "Ray job client already initialized, no further action taken.",
             )
             return
 
         if self._local_ray:
-            log.info(
-                "<RBE20236430I>",
-                "Initializing job client to local instance"
-            )
+            log.info("<RBE20236430I>", "Initializing job client to local instance")
             self._client = JobSubmissionClient(create_cluster_if_needed=True)
         else:
-            log.info(
-                "<RBE20236431I>",
-                "Initializing job client to [%s]",
-                self._address
-            )
+            log.info("<RBE20236431I>", "Initializing job client to [%s]", self._address)
             self._client = JobSubmissionClient(address=self._address)
 
 
