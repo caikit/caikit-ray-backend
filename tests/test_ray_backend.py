@@ -16,16 +16,15 @@ Unit tests for Ray backend
 """
 
 # Third Party
+from ray import job_submission
 import pytest
 
 # First Party
 import caikit
-from ray import job_submission
 
 # Local
 from caikit_ray_backend.ray_backend import RayBackend
 from tests.fixtures.mock_ray_cluster import mock_ray_cluster
-
 
 ## Happy Path Tests ############################################################
 
@@ -36,6 +35,7 @@ def test_ray_backend_is_registered():
         RayBackend.backend_type
         in caikit.core.module_backends.backend_types.module_backend_types()
     )
+
 
 def test_get_job_submission_client(mock_ray_cluster):
     config = {"connection": {"address": mock_ray_cluster.address}}
@@ -54,6 +54,7 @@ def test_stop_cluster(mock_ray_cluster):
     mock_ray_cluster.shutdown()
     with pytest.raises(ConnectionError):
         client = ray_be.get_client()
+
 
 def test_invalid_connection():
     """Make sure that invalid connections cause errors"""

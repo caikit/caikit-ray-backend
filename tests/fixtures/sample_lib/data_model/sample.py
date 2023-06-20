@@ -4,7 +4,7 @@ Dummy data model object for testing
 # Standard
 import typing
 
-# Local
+# First Party
 from caikit.core import DataObjectBase, TaskBase, dataobject, task
 
 
