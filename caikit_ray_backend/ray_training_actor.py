@@ -13,20 +13,20 @@
 # limitations under the License.
 
 # First Party
-import alog
 from caikit.core.toolkit.errors import error_handler
+import alog
 
 log = alog.use_channel("RAYTRN")
 error = error_handler.get(log)
 
 
-class RayTrainingActor():
+class RayTrainingActor:
     """A RayTrainingActor is a class that can be instantiated as a Ray Actor
     to call the training functions of caikit modules
     """
 
     def __init__(self, module_class: str):
-        """ Create a new RayTrainingActor that is mapped to one specific caikit module.
+        """Create a new RayTrainingActor that is mapped to one specific caikit module.
             If the module information passed in is invalid, an exception will be thrown
             on intialization.
 
@@ -42,14 +42,14 @@ class RayTrainingActor():
         self.training_module = self._import_mod(module_class)
 
     def _import_mod(self, training_module):
-        components = training_module.split('.')
+        components = training_module.split(".")
         mod = __import__(components[0])
         for comp in components[1:]:
             mod = getattr(mod, comp)
         return mod
 
     def train_and_save(self, model_path, *args, **kwargs):
-        """ This is essentially a proxy to a caikit module's train and save methods
+        """This is essentially a proxy to a caikit module's train and save methods
             This Ray actor will invoke the module's train and save functions locally
 
         Args:

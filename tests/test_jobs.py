@@ -15,13 +15,15 @@
 Unit tests for Ray backend training
 """
 # Standard
-import time
 import os
+import time
+
+# Third Party
+from ray.cluster_utils import Cluster
 
 # Third party
 import pytest
 import ray
-from ray.cluster_utils import Cluster
 
 # First Party
 from caikit.core.data_model import DataStream
@@ -31,14 +33,14 @@ from caikit_ray_backend.base import SharedTrainBackendBase
 from caikit_ray_backend.blocks.ray_train import RayJobTrainModule
 from tests.fixtures.mock_ray_cluster import mock_ray_cluster
 
+
 @pytest.fixture
 def jsonl_file_data_stream():
     fixtures_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), "fixtures")
     samples_path = os.path.join(fixtures_dir, "data_stream_inputs")
-    training_data = DataStream.from_jsonl(
-            os.path.join(samples_path, "sample.jsonl")
-        )
+    training_data = DataStream.from_jsonl(os.path.join(samples_path, "sample.jsonl"))
     return training_data
+
 
 def test_get_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
     print("ray address", os.environ.get("RAY_ADDRESS"))
@@ -47,7 +49,10 @@ def test_get_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
     trainer = RayJobTrainModule(config)
 
     kwargs = {"training data": jsonl_file_data_stream}
-    model_future = trainer.train(module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule", **kwargs)
+    model_future = trainer.train(
+        module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+        **kwargs
+    )
     assert model_future.id != None
 
     status = model_future.get_status()
@@ -69,7 +74,9 @@ def test_get_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
 
         count += 1
 
+
 ## Error Cases
+
 
 def test_invalid_type_model_save_path(mock_ray_cluster, jsonl_file_data_stream):
     config = {"connection": {"address": mock_ray_cluster.address}}
@@ -77,7 +84,12 @@ def test_invalid_type_model_save_path(mock_ray_cluster, jsonl_file_data_stream):
 
     kwargs = {"training data": jsonl_file_data_stream}
     with pytest.raises(TypeError):
-        model_future = trainer.train(save_path=["this is a list"], module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule", **kwargs)
+        model_future = trainer.train(
+            save_path=["this is a list"],
+            module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+            **kwargs
+        )
+
 
 def test_invalid_path_model_save(mock_ray_cluster, jsonl_file_data_stream):
     # This should pass the inital file check but the ray job will fail
@@ -85,6 +97,14 @@ def test_invalid_path_model_save(mock_ray_cluster, jsonl_file_data_stream):
     trainer = RayJobTrainModule(config)
     kwargs = {"training data": jsonl_file_data_stream}
     with pytest.raises(FileNotFoundError):
-        model_future = trainer.train(save_path="/bogus_path", module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule", **kwargs)
+        model_future = trainer.train(
+            save_path="/bogus_path",
+            module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+            **kwargs
+        )
 
 
+def test_cleanup(mock_ray_cluster):
+    # Shutdown the cluster so it doesn't cause conflict with other tests starting the cluster again
+    mock_ray_cluster.shutdown()
+    assert not ray.is_initialized()

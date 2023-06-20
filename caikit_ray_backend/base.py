@@ -16,12 +16,13 @@
 """
 
 # Standard
+from enum import Enum
 from typing import Optional
 import abc
-from enum import Enum
 
 # First Party
 from caikit.core.module_backends import BackendBase
+
 
 class SharedTrainBackendBase(BackendBase, abc.ABC):
     """Interface for a backend that can perform train on any given module
