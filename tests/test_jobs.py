@@ -43,8 +43,6 @@ def jsonl_file_data_stream():
 
 
 def test_get_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
-    print("ray address", os.environ.get("RAY_ADDRESS"))
-    print("cluster addres", mock_ray_cluster.address)
     config = {"connection": {"address": mock_ray_cluster.address}}
     trainer = RayJobTrainModule(config)
 
@@ -64,9 +62,7 @@ def test_get_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
     while True:
         time.sleep(1)
         status = model_future.get_status()
-        print("Job status", status)
         if status == SharedTrainBackendBase.TrainingStatus.ERRORED or count >= 60:
-            print(trainer.get_client().get_job_logs(model_future._ray_job_id))
             assert 0
 
         if status == SharedTrainBackendBase.TrainingStatus.COMPLETED:

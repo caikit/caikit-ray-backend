@@ -164,11 +164,11 @@ class RayJobTrainModule(RayBackend, SharedTrainBackendBase):
         # TODO: Should we have configurable limits on number of each that can be requested?
         if num_cpus:
             error.type_check("<RYT19121015E>", int, num_cpus=num_cpus)
-            error.value_check("<RYT81418146E>", "> 0", num_cpus=num_cpus)
+            error.value_check("<RYT81418146E>", num_cpus > 0)
             env_vars["num_cpus"] = num_cpus
         if num_gpus:
             error.type_check("<RYT94930817E>", int, num_gpus=num_gpus)
-            error.type_check("<RYT87231812E>", "> 0", num_gpus=num_gpus)
+            error.value_check("<RYT87231812E>", num_gpus > 0)
             env_vars["num_gpus"] = num_gpus
 
         # Serialize **kwargs and add them to environment variables

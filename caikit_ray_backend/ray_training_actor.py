@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Third Party
+import ray
+
 # First Party
 from caikit.core.toolkit.errors import error_handler
 import alog
@@ -20,6 +23,7 @@ log = alog.use_channel("RAYTRN")
 error = error_handler.get(log)
 
 
+@ray.remote(num_gpus=1, num_cpus=1)
 class RayTrainingActor:
     """A RayTrainingActor is a class that can be instantiated as a Ray Actor
     to call the training functions of caikit modules
