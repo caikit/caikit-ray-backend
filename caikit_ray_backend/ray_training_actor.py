@@ -66,14 +66,17 @@ class RayTrainingActor:
             **kwargs
                 Named arguments for the train method
         """
-
-        error.type_check("<RYT24249644E>", str, model_path=model_path)
-        error.dir_check("<RYT41479888E>", model_path)
+        if model_path:
+            error.type_check("<RYT24249644E>", str, model_path=model_path)
+            error.dir_check("<RYT41479888E>", model_path)
 
         log.debug("<RYT57616295D>", "Beginning training")
         model = self.training_module.train(*args, **kwargs)
 
         log.debug("<RYT45386862D>", "Training complete, beginning save")
-        model.save(model_path)
+        if model_path:
+            model.save(model_path)
+        else:
+            model.save()
 
         log.debug("<RYT39131219D>", "Save complete")

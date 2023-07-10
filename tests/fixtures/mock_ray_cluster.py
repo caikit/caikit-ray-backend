@@ -6,17 +6,19 @@ import ray
 
 def create_ray_cluster() -> Cluster:
     # First kill any other ray cluster
-    ray.shutdown()
+    if ray.is_initialized():
+        ray.shutdown()
 
     return Cluster(
         initialize_head=True,
-        head_node_args={"num_cpus": 1, "include_dashboard": True},
+        head_node_args={"num_cpus": 1},
     )
 
 
 @pytest.fixture(scope="session")
 def mock_ray_cluster():
-    print("**Creating cluster")
     cluster = create_ray_cluster()
-    ray.init(address=cluster.address)
-    return cluster
+    yield cluster
+
+    # This code gets executed at tear down
+    ray.shutdown()

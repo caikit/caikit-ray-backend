@@ -75,7 +75,8 @@ def main():
     serialized_args = runtime_env.get("args")
     args = []
     for arg in serialized_args:
-        args.append(txt_to_obj(arg))
+        arg = txt_to_obj(arg)
+        args.append(arg)
 
     model_path = runtime_env.get("save_path")
     if model_path:
@@ -83,9 +84,7 @@ def main():
 
     # Finally kick off trainig
     with alog.ContextTimer(log.debug, "Done training %s in: ", module_class):
-        ray.get(
-            remote_class.train_and_save.remote(model_path=model_path, *args, **kwargs)
-        )
+        ray.get(remote_class.train_and_save.remote(model_path, *args, **kwargs))
 
 
 if __name__ == "__main__":

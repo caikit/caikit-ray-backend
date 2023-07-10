@@ -40,6 +40,35 @@ class RayBackend(BackendBase):
     backend_type = "RAY"
 
     def __init__(self, config: Optional[dict] = None):
+        """
+        This method will launch a Ray job which will in turn call the train() and save() methods
+        on the given module identified by module_class.
+
+
+        Args:
+            module_class: str
+                Fully qualified path of module class
+                i.e. "caikit_example.modules.example_module.ExampleClass
+                This module should extend ModuleBase and implement train() and save() methods
+
+            save_path: str (Optional)
+                Location on disk of where to save the model
+
+            num_gpus: int (Optional)
+                The number of gpus to be used for the training task
+
+            num_cpus: int (Optional)
+                The number of cpus to be used for the training task
+
+            *args
+                Positional arguments for the train method
+
+            **kwargs
+                Named arguments for the train method
+
+        Returns:
+            RayTrainModelFuture
+        """
         super().__init__(config=config)
 
         self._client = None
