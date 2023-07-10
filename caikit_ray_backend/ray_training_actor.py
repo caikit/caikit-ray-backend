@@ -12,6 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Third Party
+import ray
+
 # First Party
 from caikit.core.toolkit.errors import error_handler
 import alog
@@ -20,6 +23,7 @@ log = alog.use_channel("RAYTRN")
 error = error_handler.get(log)
 
 
+@ray.remote(num_gpus=1, num_cpus=1)
 class RayTrainingActor:
     """A RayTrainingActor is a class that can be instantiated as a Ray Actor
     to call the training functions of caikit modules
@@ -62,14 +66,17 @@ class RayTrainingActor:
             **kwargs
                 Named arguments for the train method
         """
-
-        error.type_check("<RYT24249644E>", str, model_path=model_path)
-        error.dir_check("<RYT41479888E>", model_path)
+        if model_path:
+            error.type_check("<RYT24249644E>", str, model_path=model_path)
+            error.dir_check("<RYT41479888E>", model_path)
 
         log.debug("<RYT57616295D>", "Beginning training")
         model = self.training_module.train(*args, **kwargs)
 
         log.debug("<RYT45386862D>", "Training complete, beginning save")
-        model.save(model_path)
+        if model_path:
+            model.save(model_path)
+        else:
+            model.save()
 
         log.debug("<RYT39131219D>", "Save complete")

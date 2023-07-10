@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+
 # Standard
 import base64
 import json
@@ -54,12 +55,12 @@ def main():
     error.type_check("<RYT97664954E>", str, module_class=module_class)
 
     # Even if either value is None, it's fine.
-    num_gpus = os.environ.get("num_gpus")
-    num_cpus = os.environ.get("num_cpus")
+    num_gpus = runtime_env.get("num_gpus")
+    num_cpus = runtime_env.get("num_cpus")
 
     # Instantiate the remote Ray Actor with our target module class for training
-    remote_class = ray.remote(num_cpus=num_cpus, num_gpus=num_gpus)(
-        RayTrainingActor
+    remote_class = RayTrainingActor.options(
+        num_cpus=num_cpus, num_gpus=num_gpus
     ).remote(module_class=module_class)
 
     # The entire kwargs dict should have been serialized as a whole
@@ -74,16 +75,16 @@ def main():
     serialized_args = runtime_env.get("args")
     args = []
     for arg in serialized_args:
-        args.append(txt_to_obj(arg))
+        arg = txt_to_obj(arg)
+        args.append(arg)
 
-    model_path = runtime_env.get("model_path")
+    model_path = runtime_env.get("save_path")
     if model_path:
-        model_path = txt_to_obj(model_path)
         error.type_check("<RYT70238308E>", str, model_path=model_path)
 
     # Finally kick off trainig
     with alog.ContextTimer(log.debug, "Done training %s in: ", module_class):
-        remote_class.train_and_save.remote(model_path, *args, **kwargs)
+        ray.get(remote_class.train_and_save.remote(model_path, *args, **kwargs))
 
 
 if __name__ == "__main__":
