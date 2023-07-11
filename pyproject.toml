@@ -16,7 +16,7 @@ classifiers=[
 dependencies = [
     "caikit==0.10.1",
     "ray[default]==2.5.1",
-    "pydantic<2"
+    "pydantic<3"
 ]
 
 [project.scripts]
