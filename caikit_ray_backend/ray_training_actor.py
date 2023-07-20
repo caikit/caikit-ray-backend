@@ -74,9 +74,6 @@ class RayTrainingActor:
         model = self.training_module.train(*args, **kwargs)
 
         log.debug("<RYT45386862D>", "Training complete, beginning save")
-        if model_path:
-            model.save(model_path)
-        else:
-            model.save()
+        model.save(model_path)
 
         log.debug("<RYT39131219D>", "Save complete")

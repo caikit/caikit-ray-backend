@@ -19,19 +19,23 @@ import os
 import time
 
 # Third Party
-from ray.cluster_utils import Cluster
-
 # Third party
+from ray import job_submission
+from ray.cluster_utils import Cluster
 import pytest
 import ray
 
 # First Party
 from caikit.core.data_model import DataStream
+from caikit.core.model_management.model_trainer_base import TrainingStatus
+import caikit
 
 # Local
-from caikit_ray_backend.base import SharedTrainBackendBase
 from caikit_ray_backend.blocks.ray_train import RayJobTrainModule
 from tests.fixtures.mock_ray_cluster import mock_ray_cluster
+from tests.fixtures.sample_lib.modules.sample_task.sample_implementation import (
+    SampleModule,
+)
 
 
 @pytest.fixture
@@ -63,16 +67,77 @@ def test_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
     while True:
         time.sleep(1)
         status = model_future.get_status()
-        if status == SharedTrainBackendBase.TrainingStatus.ERRORED or count >= 60:
+        if status == TrainingStatus.ERRORED or count >= 60:
             print(
                 model_future._ray_be.get_client().get_job_logs(model_future._ray_job_id)
             )
             assert 0
 
-        if status == SharedTrainBackendBase.TrainingStatus.COMPLETED:
+        if status == TrainingStatus.COMPLETED:
             break
 
         count += 1
+
+
+def test_wait(mock_ray_cluster, jsonl_file_data_stream):
+    config = {"connection": {"address": mock_ray_cluster.address}}
+    trainer = RayJobTrainModule(config)
+
+    args = [jsonl_file_data_stream]
+    model_future = trainer.train(
+        "tests.fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+        *args,
+        save_path="/tmp",
+    )
+
+    model_future.POLLING_INTERVAL = 1
+    model_future.POLLING_TIMEOUT = 45
+    model_future.wait()
+    status = model_future.get_status()
+    print(status)
+    assert status == TrainingStatus.COMPLETED
+
+
+def test_load(mock_ray_cluster, jsonl_file_data_stream):
+    config = {"connection": {"address": mock_ray_cluster.address}}
+    trainer = RayJobTrainModule(config)
+
+    args = [jsonl_file_data_stream]
+    model_future = trainer.train(
+        "tests.fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+        *args,
+        save_path="/tmp",
+    )
+
+    model_future.POLLING_INTERVAL = 1
+    model_future.POLLING_TIMEOUT = 45
+    model = model_future.load()
+    assert isinstance(model, SampleModule)
+
+
+def test_cancel(mock_ray_cluster, jsonl_file_data_stream):
+    config = {"connection": {"address": mock_ray_cluster.address}}
+    trainer = RayJobTrainModule(config)
+
+    args = [jsonl_file_data_stream]
+    model_future = trainer.train(
+        "tests.fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
+        *args,
+        save_path="/tmp",
+    )
+
+    model_future.cancel()
+    elapsed_time = 0
+    while elapsed_time < 30:
+        time.sleep(1)
+        status = model_future.get_status()
+        if status == TrainingStatus.CANCELED:
+            assert 1
+        elapsed_time += 1
+
+    status = model_future.get_status()
+    print("Final status was", status)
+    assert status == TrainingStatus.CANCELED
 
 
 ## Error Cases
@@ -102,3 +167,66 @@ def test_invalid_path_model_save(mock_ray_cluster, jsonl_file_data_stream):
             module_class="fixtures.sample_lib.modules.sample_task.sample_implementation.SampleModule",
             **kwargs,
         )
+
+
+## Test Ray Backend
+
+
+def test_ray_backend_is_registered():
+    """Make sure that the Ray backend is correctly registered with caikit"""
+    assert (
+        RayJobTrainModule.backend_type
+        in caikit.core.module_backends.backend_types.module_backend_types()
+    )
+
+
+def test_ray_local_backend_config_valid():
+    """Make sure that the Ray backend can be configured with a valid config
+    blob for an insecure server
+    """
+    ray_be = RayJobTrainModule()
+    ray_be.start()
+    assert ray_be.is_started
+
+
+def test_ray_local_backend_get_client():
+    """Make sure the get_client() call implicitly starts it"""
+    ray_be = RayJobTrainModule()
+    client = ray_be.get_client()
+    assert ray_be.is_started
+
+
+def test_get_client_after_manually_starting():
+    ray_be = RayJobTrainModule()
+    ray_be.start()
+    client = ray_be.get_client()
+    assert ray_be.is_started
+
+
+def test_get_job_submission_client(mock_ray_cluster):
+    config = {"connection": {"address": mock_ray_cluster.address}}
+    ray_be = RayJobTrainModule(config=config)
+    client = ray_be.get_client()
+    print(client)
+    assert ray_be.is_started
+    assert isinstance(client, job_submission.JobSubmissionClient)
+
+
+## Failure Tests ###############################################################
+
+
+def test_stop_cluster(mock_ray_cluster):
+    config = {"connection": {"address": mock_ray_cluster.address}}
+    ray_be = RayJobTrainModule(config=config)
+    mock_ray_cluster.shutdown()
+    with pytest.raises(ConnectionError):
+        client = ray_be.get_client()
+
+
+def test_invalid_connection():
+    """Make sure that invalid connections cause errors"""
+    # All forms of invalid hostname
+    with pytest.raises(TypeError):
+        RayJobTrainModule({"connection": "not a dict"})
+    with pytest.raises(TypeError):
+        RayJobTrainModule({"connection": {"not_address": "localhost"}})

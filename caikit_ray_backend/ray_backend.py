@@ -114,8 +114,6 @@ class RayBackend(BackendBase):
 
     def start(self):
         """Start backend, initializing the client"""
-        # if self._local_ray: #and not ray.is_initialized():
-        # ray.init(ignore_reinit_error=True, include_dashboard=True)
         self._setup_job_client()
         self._started = True
 
