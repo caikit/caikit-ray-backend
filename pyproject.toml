@@ -15,7 +15,7 @@ classifiers=[
 ]
 dependencies = [
     "caikit==0.10.1",
-    "ray[default]==2.5.1",
+    "ray[default]==2.6.0",
     "pydantic<2"
 ]
 
