@@ -13,19 +13,20 @@
 # limitations under the License.
 
 # Standard
-from typing import Optional
+from typing import Optional, Type
 import base64
 import pickle
 import time
 
 # Third Party
-from ray.job_submission import JobStatus
+from ray.job_submission import JobInfo, JobStatus
 
 # First Party
 from caikit.core.model_management import ModelTrainerBase, model_trainer_factory
-from caikit.core.model_management.model_trainer_base import TrainingStatus
+from caikit.core.model_management.model_trainer_base import TrainingInfo, TrainingStatus
 from caikit.core.modules import ModuleBase
 from caikit.core.toolkit.errors import error_handler
+import aconfig
 import alog
 import caikit
 
@@ -36,10 +37,10 @@ logger = alog.use_channel("<RYT_BLK>")
 error = error_handler.get(logger)
 
 
-class RayJobTrainModule(RayBackend, ModelTrainerBase):
+class RayJobTrainModule(ModelTrainerBase, RayBackend):
     name = "RAY_JOB_TRAIN"
 
-    def __init__(self, config: Optional[dict] = None) -> None:
+    def __init__(self, config: aconfig.Config, instance_name: str):
         """Function to initialize the RayJobTrainModule.
 
         Args:
@@ -47,10 +48,12 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
                 This is the Ray backend configuration.
                 {
                     "connection" : {"address" : "127.0.0.1:64291"},
-                    "use_jobs" : true | false
                 }
         """
-        super().__init__(config=config)
+        self._instance_name = instance_name
+        self.config = config
+        super().__init__(config=config, instance_name=instance_name)
+        self._init_connections()
 
     class RayTrainModelFuture(ModelTrainerBase.ModelFutureBase):
 
@@ -84,14 +87,20 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
         def status_mapper(self, ray_job_status: JobStatus) -> TrainingStatus:
             return self.status_map.get(ray_job_status)
 
-        def get_status(self) -> TrainingStatus:
+        def get_info(self) -> TrainingInfo:
             """Every model future must be able to poll the status of the
             training job
             """
 
             client = self._ray_be.get_client()
-            job_status = client.get_job_status(self._ray_job_id)
-            return self.status_mapper(job_status)
+            ray_job_info = client.get_job_info(self._ray_job_id)
+            job_status = self.status_mapper(ray_job_info.status)
+            error_info = None
+
+            if ray_job_info.status in [JobStatus.FAILED, JobStatus.STOPPED]:
+                error_info = [ray_job_info.error_type, ray_job_info.message]
+
+            return TrainingInfo(job_status, error_info)
 
         def cancel(self):
             """Terminate the given training"""
@@ -115,11 +124,14 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
             self._validate_success()
 
         def _validate_success(self):
-            status = self.get_status()
-            if status == JobStatus.SUCCEEDED:
+            info = self.get_info()
+            status = info.status
+            if status == TrainingStatus.COMPLETED:
                 return
-            if status in [JobStatus.STOPPED, JobStatus.FAILED]:
-                raise RuntimeError(f"Training process died with status {status}")
+            if status in [TrainingStatus.ERRORED, TrainingStatus.CANCELED]:
+                raise RuntimeError(
+                    f"Training process died with status {status} and message {info.errors}"
+                )
 
         def load(self) -> ModuleBase:
             """A model future must be loadable with no additional arguments"""
@@ -127,7 +139,10 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
 
             # If we exit waiting without it throwing an exception,
             # we assume the job succeeded
-            result = caikit.load(self.save_path)
+            if self.save_path is not None:
+                result = caikit.load(self.save_path)
+            else:
+                result = caikit.load()
             return result
 
     @staticmethod
@@ -139,7 +154,7 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
 
     def train(
         self,
-        module_class: str,
+        module_class: Type[ModuleBase],
         *args,
         save_path: Optional[str] = None,
         save_with_id: bool = False,
@@ -182,27 +197,30 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
 
         ray_job_client = self.get_client()
 
-        error.type_check("<RYT94736704E>", str, module_class=module_class)
-
         env_vars = {"module_class": self._obj_to_txt(module_class)}
 
         metadata = {}
         if save_path is not None:
             error.type_check("<RYT69631537E>", str, save_path=save_path)
-            error.dir_check("<RYT48093065E>", save_path)
             env_vars["save_path"] = save_path
             metadata["save_path"] = save_path
 
         # Validate number of CPUs and GPUs requested.
         # TODO: Should we have configurable limits on number of each that can be requested?
-        if num_cpus:
+        default_resources = self.config.get("default_resources")
+        if num_cpus is None and default_resources is not None:
+            num_cpus = default_resources.get("cpu")
+        if num_cpus is not None:
             error.type_check("<RYT19121015E>", int, num_cpus=num_cpus)
             error.value_check("<RYT81418146E>", num_cpus > 0)
-            env_vars["num_cpus"] = num_cpus
-        if num_gpus:
+            env_vars["requested_cpus"] = num_cpus
+
+        if num_gpus is None and default_resources is not None:
+            num_gpus = default_resources.get("gpu")
+        if num_gpus is not None:
             error.type_check("<RYT94930817E>", int, num_gpus=num_gpus)
             error.value_check("<RYT87231812E>", num_gpus > 0)
-            env_vars["num_gpus"] = num_gpus
+            env_vars["requested_gpus"] = num_gpus
 
         # Serialize **kwargs and add them to environment variables
         my_kwargs = {}
@@ -217,7 +235,7 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
         env_vars["args"] = my_args
 
         if save_with_id:
-            metadata["save_with_id"] = save_with_id
+            metadata["save_with_id"] = str(save_with_id)
 
         job_id = ray_job_client.submit_job(
             entrypoint="ray_submitter", runtime_env=env_vars, metadata=metadata
@@ -232,15 +250,15 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
         given training by id
         """
 
-        ray_job_id = training_id.split(
-            self.RayTrainModelFuture.__getattribute__.__name__
-            + self.__class__.ID_DELIMITER
-        )[1]
+        if self.RayTrainModelFuture.ID_DELIMITER in training_id:
+            ray_job_id = training_id.split(self.RayTrainModelFuture.ID_DELIMITER)[1]
+        else:
+            ray_job_id = training_id
 
         client = self.get_client()
         try:
             job_info = client.get_job_info(ray_job_id)
-        except Exception as e:
+        except RuntimeError as e:
             logger.error(
                 "Unable to retrieve info for Ray job ID [%s] with error [%s]",
                 training_id,
@@ -250,7 +268,8 @@ class RayJobTrainModule(RayBackend, ModelTrainerBase):
 
         # If we do not receive an exception, then it is a valid Ray job
         metadata = job_info.metadata
-        save_with_id = metadata.get("save_with_id")
+        # Metadata is stored as strings, so convert string to bool
+        save_with_id = bool(metadata.get("save_with_id"))
         save_path = metadata.get("save_path")
         model_future = self.RayTrainModelFuture(
             ray_be=self,

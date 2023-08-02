@@ -12,11 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Standard
+from typing import Type
+
 # Third Party
 import ray
 
 # First Party
+from caikit.core.modules import ModuleBase
 from caikit.core.toolkit.errors import error_handler
+from caikit.runtime.service_factory import ServicePackageFactory
 import alog
 
 log = alog.use_channel("RAYTRN")
@@ -29,7 +34,7 @@ class RayTrainingActor:
     to call the training functions of caikit modules
     """
 
-    def __init__(self, module_class: str):
+    def __init__(self, module_class: Type[ModuleBase]):
         """Create a new RayTrainingActor that is mapped to one specific caikit module.
             If the module information passed in is invalid, an exception will be thrown
             on intialization.
@@ -41,9 +46,12 @@ class RayTrainingActor:
                 This module should extend ModuleBase and implement train() and save() methods
         """
 
-        error.type_check("<RYT46984438E>", str, module_class=module_class)
+        # We need to do this to ensure all generated objects exist in this context
+        ServicePackageFactory.get_service_package(
+            ServicePackageFactory.ServiceType.TRAINING,
+        )
 
-        self.training_module = self._import_mod(module_class)
+        self.training_module = module_class
 
     def _import_mod(self, training_module):
         components = training_module.split(".")
@@ -68,9 +76,9 @@ class RayTrainingActor:
         """
         if model_path:
             error.type_check("<RYT24249644E>", str, model_path=model_path)
-            error.dir_check("<RYT41479888E>", model_path)
 
         log.debug("<RYT57616295D>", "Beginning training")
+
         model = self.training_module.train(*args, **kwargs)
 
         log.debug("<RYT45386862D>", "Training complete, beginning save")

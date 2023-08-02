@@ -39,40 +39,11 @@ class RayBackend(BackendBase):
 
     backend_type = "RAY"
 
-    def __init__(self, config: Optional[dict] = None):
-        """
-        This method will launch a Ray job which will in turn call the train() and save() methods
-        on the given module identified by module_class.
+    def __init__(self, config=None):
+        super().__init__(config)
+        self._init_connections()
 
-
-        Args:
-            module_class: str
-                Fully qualified path of module class
-                i.e. "caikit_example.modules.example_module.ExampleClass
-                This module should extend ModuleBase and implement train() and save() methods
-
-            save_path: str (Optional)
-                Location on disk of where to save the model
-
-            num_gpus: int (Optional)
-                The number of gpus to be used for the training task
-
-            num_cpus: int (Optional)
-                The number of cpus to be used for the training task
-
-            *args
-                Positional arguments for the train method
-
-            **kwargs
-                Named arguments for the train method
-
-        Returns:
-            RayTrainModelFuture
-        """
-        super().__init__(config=config)
-
-        self._client = None
-        self._local_ray = None
+    def _init_connections(self):
 
         # Parse the config to see if we"re managing a connection to a remote
         # Ray instance or running a local copy
@@ -98,6 +69,8 @@ class RayBackend(BackendBase):
                 "Invalid address: %s",
                 self._address,
             )
+
+        self._client = None
 
     def __del__(self):
         self.stop()
@@ -141,6 +114,8 @@ class RayBackend(BackendBase):
                 "Ray job client already initialized, no further action taken.",
             )
             return
+
+        self._init_connections()
 
         if self._local_ray:
             log.info("<RBE20236430I>", "Initializing job client to local instance")

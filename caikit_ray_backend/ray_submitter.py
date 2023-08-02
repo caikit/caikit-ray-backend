@@ -24,6 +24,7 @@ import ray
 
 # First Party
 from caikit.core.toolkit.errors import error_handler
+from caikit.runtime.service_factory import ServicePackageFactory
 import alog
 
 # Local
@@ -43,6 +44,11 @@ def txt_to_obj(txt):
 def main():
     log.debug("Ray job has commenced to kick off training")
 
+    # We need to do this to ensure all generated objects exist in this context
+    ServicePackageFactory.get_service_package(
+        ServicePackageFactory.ServiceType.TRAINING,
+    )
+
     runtime_env = json.loads(os.environ.get("RAY_JOB_CONFIG_JSON_ENV_VAR")).get(
         "runtime_env"
     )
@@ -52,11 +58,10 @@ def main():
     module_class_ref = runtime_env.get("module_class")
     error.value_check("<RYT46582584E>", module_class_ref is not None)
     module_class = txt_to_obj(module_class_ref)
-    error.type_check("<RYT97664954E>", str, module_class=module_class)
 
     # Even if either value is None, it's fine.
-    num_gpus = runtime_env.get("num_gpus")
-    num_cpus = runtime_env.get("num_cpus")
+    num_gpus = runtime_env.get("requested_gpus")
+    num_cpus = runtime_env.get("requested_cpus")
 
     # Instantiate the remote Ray Actor with our target module class for training
     remote_class = RayTrainingActor.options(
@@ -64,12 +69,12 @@ def main():
     ).remote(module_class=module_class)
 
     # The entire kwargs dict should have been serialized as a whole
-    serialized_kwargs = runtime_env.get("kwargs").get("kwargs")
+    serialized_kwargs = runtime_env.get("kwargs")
+    kwargs = {}
     if serialized_kwargs:
-        kwargs = txt_to_obj(serialized_kwargs)
         error.type_check("<RYT26466208E>", dict, kwargs=kwargs)
-    else:
-        kwargs = {}
+        for key, value in serialized_kwargs.items():
+            kwargs[key] = txt_to_obj(value)
 
     # Deserialize each item in the args list
     serialized_args = runtime_env.get("args")

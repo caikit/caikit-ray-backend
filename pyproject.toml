@@ -14,8 +14,8 @@ classifiers=[
     "License :: OSI Approved :: Apache Software License"
 ]
 dependencies = [
-    "caikit==0.11.0",
-    "ray[default]==2.5.1",
+    "caikit==0.14.4",
+    "ray[default]==2.6.1",
     "pydantic<2"
 ]
 
