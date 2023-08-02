@@ -33,9 +33,6 @@ import caikit
 from caikit_ray_backend.blocks.ray_train import RayJobTrainModule
 from caikit_ray_backend.ray_backend import RayBackend
 from tests.fixtures.mock_ray_cluster import mock_ray_cluster
-from tests.fixtures.sample_lib.modules.sample_task.sample_implementation import (
-    SampleModule,
-)
 
 
 @pytest.fixture

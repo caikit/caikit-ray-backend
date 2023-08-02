@@ -21,6 +21,7 @@ import ray
 # First Party
 from caikit.core.modules import ModuleBase
 from caikit.core.toolkit.errors import error_handler
+from caikit.runtime.service_factory import ServicePackageFactory
 import alog
 
 log = alog.use_channel("RAYTRN")

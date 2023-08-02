@@ -24,6 +24,7 @@ import ray
 
 # First Party
 from caikit.core.toolkit.errors import error_handler
+from caikit.runtime.service_factory import ServicePackageFactory
 import alog
 
 # Local
@@ -42,6 +43,11 @@ def txt_to_obj(txt):
 
 def main():
     log.debug("Ray job has commenced to kick off training")
+
+    # We need to do this to ensure all generated objects exist in this context
+    ServicePackageFactory.get_service_package(
+        ServicePackageFactory.ServiceType.TRAINING,
+    )
 
     runtime_env = json.loads(os.environ.get("RAY_JOB_CONFIG_JSON_ENV_VAR")).get(
         "runtime_env"
