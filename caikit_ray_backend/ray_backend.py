@@ -15,7 +15,7 @@
 """
 
 # Standard
-from typing import Dict, Optional
+from typing import Dict
 
 # Third Party
 from ray.job_submission import JobSubmissionClient
