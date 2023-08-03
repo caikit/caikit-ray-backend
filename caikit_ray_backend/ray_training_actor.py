@@ -46,11 +46,6 @@ class RayTrainingActor:
                 This module should extend ModuleBase and implement train() and save() methods
         """
 
-        # We need to do this to ensure all generated objects exist in this context
-        ServicePackageFactory.get_service_package(
-            ServicePackageFactory.ServiceType.TRAINING,
-        )
-
         self.training_module = module_class
 
     def _import_mod(self, training_module):
