@@ -20,7 +20,7 @@ import pickle
 import time
 
 # Third Party
-from ray.job_submission import JobInfo, JobStatus
+from ray.job_submission import JobStatus
 
 # First Party
 from caikit.core.model_management import ModelTrainerBase, model_trainer_factory
@@ -134,10 +134,7 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
 
             # If we exit waiting without it throwing an exception,
             # we assume the job succeeded
-            if self.save_path is not None:
-                result = caikit.load(self.save_path)
-            else:
-                result = caikit.load()
+            result = caikit.load(self.save_path)
             return result
 
     @staticmethod
