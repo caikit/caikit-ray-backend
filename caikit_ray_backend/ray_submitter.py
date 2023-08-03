@@ -24,7 +24,6 @@ import ray
 
 # First Party
 from caikit.core.toolkit.errors import error_handler
-from caikit.runtime.service_factory import ServicePackageFactory
 import alog
 
 # Local
