@@ -14,6 +14,7 @@
 
 # Standard
 from typing import Optional, Type
+from uuid import uuid4
 import base64
 import pickle
 import time
@@ -41,15 +42,7 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
     name = "RAY_JOB_TRAIN"
 
     def __init__(self, config: aconfig.Config, instance_name: str):
-        """Function to initialize the RayJobTrainModule.
-
-        Args:
-            config: dict
-                This is the Ray backend configuration.
-                {
-                    "connection" : {"address" : "127.0.0.1:64291"},
-                }
-        """
+        """Function to initialize the RayJobTrainModule."""
         self._instance_name = instance_name
         self.config = config
         super().__init__(config=config, instance_name=instance_name)
@@ -199,8 +192,6 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
         metadata = {}
         if save_path is not None:
             error.type_check("<RYT69631537E>", str, save_path=save_path)
-            env_vars["save_path"] = save_path
-            metadata["save_path"] = save_path
 
         # Validate number of CPUs and GPUs requested.
         # TODO: Should we have configurable limits on number of each that can be requested?
@@ -231,14 +222,20 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
             my_args.append(self._obj_to_txt(arg))
         env_vars["args"] = my_args
 
-        if save_with_id:
-            metadata["save_with_id"] = str(save_with_id)
-
-        job_id = ray_job_client.submit_job(
-            entrypoint="ray_submitter", runtime_env=env_vars, metadata=metadata
-        )
+        # We generate our own job ID instead of the default Ray generated
+        job_id = str(uuid4())
 
         model_future = self.RayTrainModelFuture(self, job_id, save_with_id, save_path)
+
+        env_vars["save_path"] = model_future.save_path
+        metadata["save_path"] = model_future.save_path
+
+        job = ray_job_client.submit_job(
+            entrypoint="ray_submitter",
+            submission_id=job_id,
+            runtime_env=env_vars,
+            metadata=metadata,
+        )
 
         return model_future
 
