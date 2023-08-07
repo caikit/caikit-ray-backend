@@ -1,4 +1,4 @@
-# Caitkit Ray Backend
+# Caikit Ray Backend
 
 ## ⚠️ WORK IN PROGRESS ⚠️
 
