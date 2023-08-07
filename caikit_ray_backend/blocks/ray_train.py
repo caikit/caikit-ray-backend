@@ -230,7 +230,7 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
         env_vars["save_path"] = model_future.save_path
         metadata["save_path"] = model_future.save_path
 
-        job = ray_job_client.submit_job(
+        ray_job_client.submit_job(
             entrypoint="ray_submitter",
             submission_id=job_id,
             runtime_env=env_vars,
