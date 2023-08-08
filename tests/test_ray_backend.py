@@ -74,6 +74,10 @@ def test_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
 
         count += 1
 
+    assert info.submission_time
+    assert info.completion_time
+    assert info.submission_time < info.completion_time
+
 
 def test_wait(mock_ray_cluster, jsonl_file_data_stream):
     config = {"connection": {"address": mock_ray_cluster.address}}

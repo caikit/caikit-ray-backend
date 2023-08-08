@@ -93,7 +93,9 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
             if ray_job_info.status in [JobStatus.FAILED, JobStatus.STOPPED]:
                 error_info = [ray_job_info.error_type, ray_job_info.message]
 
-            return TrainingInfo(job_status, error_info)
+            return TrainingInfo(
+                job_status, error_info, ray_job_info.start_time, ray_job_info.end_time
+            )
 
         def cancel(self):
             """Terminate the given training"""
