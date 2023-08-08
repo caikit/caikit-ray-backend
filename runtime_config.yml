@@ -1,0 +1,14 @@
+# Sample runtime config for Caikit Ray Backend
+model_management:
+  trainers:
+    default:
+      type: RAY_JOB_TRAIN
+      import_class: caikit_ray_backend.blocks.ray_train.RayJobTrainModule
+      config:
+        connection:
+          address: http://raycluster-svc:8265
+        default_resources:
+          # These resources will be passed into Ray as required
+          # resources for each individual training job
+          cpu: 1
+          gpu: 1
