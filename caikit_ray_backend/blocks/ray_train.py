@@ -13,6 +13,7 @@
 # limitations under the License.
 
 # Standard
+from datetime import datetime
 from typing import Optional, Type
 from uuid import uuid4
 import base64
@@ -93,9 +94,14 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
             if ray_job_info.status in [JobStatus.FAILED, JobStatus.STOPPED]:
                 error_info = [ray_job_info.error_type, ray_job_info.message]
 
-            return TrainingInfo(
-                job_status, error_info, ray_job_info.start_time, ray_job_info.end_time
-            )
+            # The Ray job start and end times are unix timestamps, so they
+            # need to be converted
+            start_time = datetime.fromtimestamp(ray_job_info.start_time / 1000.0)
+            end_time = ray_job_info.end_time
+            if end_time:
+                end_time = datetime.fromtimestamp(end_time / 1000.0)
+
+            return TrainingInfo(job_status, error_info, start_time, end_time)
 
         def cancel(self):
             """Terminate the given training"""
