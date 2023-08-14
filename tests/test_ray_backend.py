@@ -15,6 +15,7 @@
 Unit tests for Ray backend training
 """
 # Standard
+from datetime import datetime
 import os
 import time
 
@@ -74,8 +75,8 @@ def test_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
 
         count += 1
 
-    assert info.submission_time
-    assert info.completion_time
+    assert type(info.submission_time) is datetime
+    assert type(info.completion_time) is datetime
     assert info.submission_time < info.completion_time
 
 
