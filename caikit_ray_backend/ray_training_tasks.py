@@ -26,6 +26,7 @@ import alog
 log = alog.use_channel("RAYTRN")
 error = error_handler.get(log)
 
+
 @ray.remote(num_gpus=1, num_cpus=1)
 def train_and_save(module_class: Type[ModuleBase], model_path: str, *args, **kwargs):
     """This is essentially a proxy to a caikit module's train and save methods
