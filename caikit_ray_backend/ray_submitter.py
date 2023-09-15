@@ -27,7 +27,7 @@ from caikit.core.toolkit.errors import error_handler
 import alog
 
 # Local
-from caikit_ray_backend.ray_training_actor import RayTrainingActor
+from caikit_ray_backend import ray_training_tasks
 
 log = alog.use_channel("RAYTRN")
 error = error_handler.get(log)
@@ -57,11 +57,6 @@ def main():
     num_gpus = runtime_env.get("requested_gpus")
     num_cpus = runtime_env.get("requested_cpus")
 
-    # Instantiate the remote Ray Actor with our target module class for training
-    remote_class = RayTrainingActor.options(
-        num_cpus=num_cpus, num_gpus=num_gpus
-    ).remote(module_class=module_class)
-
     # The entire kwargs dict should have been serialized as a whole
     serialized_kwargs = runtime_env.get("kwargs")
     kwargs = {}
@@ -83,7 +78,11 @@ def main():
 
     # Finally kick off trainig
     with alog.ContextTimer(log.debug, "Done training %s in: ", module_class):
-        ray.get(remote_class.train_and_save.remote(model_path, *args, **kwargs))
+        ray.get(
+            ray_training_tasks.train_and_save.options(
+                num_cpus=num_cpus, num_gpus=num_gpus
+            ).remote(module_class, model_path, *args, **kwargs)
+        )
 
 
 if __name__ == "__main__":
