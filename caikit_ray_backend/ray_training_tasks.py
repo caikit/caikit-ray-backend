@@ -50,15 +50,10 @@ def train_and_save(module_class: Type[ModuleBase], model_path: str, *args, **kwa
         error.type_check("<RYT24249644E>", str, model_path=model_path)
 
     log.debug("<RYT57616295D>", "Beginning training")
-    print("ARGS!!", args, kwargs)
 
     model = module_class.train(*args, **kwargs)
-
-    print("DONE TRAINING")
 
     log.debug("<RYT45386862D>", "Training complete, beginning save")
     model.save(model_path)
 
-
-    print("DONE SAVING")
     log.debug("<RYT39131219D>", "Save complete")
