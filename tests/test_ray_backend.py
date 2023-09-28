@@ -22,6 +22,7 @@ import time
 # Third Party
 # Third party
 from ray import job_submission
+from ray.exceptions import RaySystemError
 from sample_lib.modules.sample_task.sample_implementation import SampleModule
 import pytest
 
@@ -190,7 +191,7 @@ def test_stop_cluster(mock_ray_cluster):
     config = {"connection": {"address": mock_ray_cluster.address}}
     ray_be = RayBackend(config)
     mock_ray_cluster.shutdown()
-    with pytest.raises(ConnectionError):
+    with pytest.raises(RaySystemError):
         client = ray_be.get_client()
 
 
