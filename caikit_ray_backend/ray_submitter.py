@@ -23,6 +23,7 @@ import pickle
 import ray
 
 # First Party
+from caikit import get_config
 from caikit.core.toolkit.errors import error_handler
 import alog
 
@@ -76,12 +77,24 @@ def main():
     if model_path:
         error.type_check("<RYT70238308E>", str, model_path=model_path)
 
-    # Finally kick off trainig
+    timeout = 60
+    if get_config().training_timeout:
+        try:
+            timeout = int(get_config().training_timeout)
+        except ValueError:
+            log.warn(
+                f"training_timeout: '{get_config().training_timeout}' cannot be converted to int, ignoring"
+            )
+
+    # Finally kick off training
     with alog.ContextTimer(log.debug, "Done training %s in: ", module_class):
-        ray.get(
-            ray_training_tasks.train_and_save.options(
-                num_cpus=num_cpus, num_gpus=num_gpus
-            ).remote(module_class, model_path, *args, **kwargs)
+        ray.wait(
+            [
+                ray_training_tasks.train_and_save.options(
+                    num_cpus=num_cpus, num_gpus=num_gpus
+                ).remote(module_class, model_path, *args, **kwargs)
+            ],
+            timeout=timeout
         )
 
 
