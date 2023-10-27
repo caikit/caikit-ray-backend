@@ -158,7 +158,7 @@ def test_cancel(mock_ray_cluster, jsonl_file_data_stream):
 def test_timeout(mock_ray_cluster, jsonl_file_data_stream):
     config = {
         "connection": {"address": mock_ray_cluster.address},
-        "training_timeout": 0.1,
+        "training_timeout": 0.25,
     }
     trainer = RayJobTrainModule(config, "ray_backend")
 
