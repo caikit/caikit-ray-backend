@@ -142,6 +142,27 @@ def test_cancel(mock_ray_cluster, jsonl_file_data_stream):
     assert status == TrainingStatus.CANCELED
 
 
+def test_timeout(mock_ray_cluster, jsonl_file_data_stream):
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 3,
+    }
+    trainer = RayJobTrainModule(config, "ray_backend")
+
+    args = [jsonl_file_data_stream]
+    model_future = trainer.train(
+        SampleModule,
+        *args,
+        save_path="/tmp",
+    )
+
+    time.sleep(5)
+
+    status = model_future.get_info().status
+    print("Final status was", status)
+    assert status == TrainingStatus.CANCELED
+
+
 ## Test Ray Backend
 
 
