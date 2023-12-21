@@ -15,7 +15,7 @@ classifiers=[
 ]
 dependencies = [
     "caikit>=0.15.0,<0.25.0",
-    "ray[default]==2.7.1"
+    "ray[default]==2.9.0"
 ]
 
 [project.scripts]
