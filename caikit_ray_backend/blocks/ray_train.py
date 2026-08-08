@@ -218,6 +218,9 @@ class RayJobTrainModule(ModelTrainerBase, RayBackend):
             error.value_check("<RYT87231812E>", num_gpus > 0)
             env_vars["requested_gpus"] = num_gpus
 
+        training_timeout = self.config.get("training_timeout", 60)
+        env_vars["training_timeout"] = float(training_timeout)
+
         # Serialize **kwargs and add them to environment variables
         my_kwargs = {}
         for key, value in kwargs.items():

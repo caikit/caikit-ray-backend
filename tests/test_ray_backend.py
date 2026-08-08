@@ -16,6 +16,7 @@ Unit tests for Ray backend training
 """
 # Standard
 from datetime import datetime
+import logging
 import os
 import time
 
@@ -46,7 +47,10 @@ def jsonl_file_data_stream():
 
 
 def test_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
-    config = {"connection": {"address": mock_ray_cluster.address}}
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 30.0,
+    }
     trainer = RayJobTrainModule(config, "ray_backend")
 
     args = [jsonl_file_data_stream]
@@ -82,7 +86,10 @@ def test_job_submission_client(mock_ray_cluster, jsonl_file_data_stream):
 
 
 def test_wait(mock_ray_cluster, jsonl_file_data_stream):
-    config = {"connection": {"address": mock_ray_cluster.address}}
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 30.0,
+    }
     trainer = RayJobTrainModule(config, "ray_backend")
 
     args = [jsonl_file_data_stream]
@@ -101,7 +108,10 @@ def test_wait(mock_ray_cluster, jsonl_file_data_stream):
 
 
 def test_load(mock_ray_cluster, jsonl_file_data_stream):
-    config = {"connection": {"address": mock_ray_cluster.address}}
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 30.0,
+    }
     trainer = RayJobTrainModule(config, "ray_backend")
 
     args = [jsonl_file_data_stream]
@@ -118,7 +128,10 @@ def test_load(mock_ray_cluster, jsonl_file_data_stream):
 
 
 def test_cancel(mock_ray_cluster, jsonl_file_data_stream):
-    config = {"connection": {"address": mock_ray_cluster.address}}
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 30.0,
+    }
     trainer = RayJobTrainModule(config, "ray_backend")
 
     args = [jsonl_file_data_stream]
@@ -140,6 +153,27 @@ def test_cancel(mock_ray_cluster, jsonl_file_data_stream):
     status = model_future.get_info().status
     print("Final status was", status)
     assert status == TrainingStatus.CANCELED
+
+
+def test_timeout(mock_ray_cluster, jsonl_file_data_stream):
+    config = {
+        "connection": {"address": mock_ray_cluster.address},
+        "training_timeout": 0.25,
+    }
+    trainer = RayJobTrainModule(config, "ray_backend")
+
+    args = [jsonl_file_data_stream]
+    model_future = trainer.train(
+        SampleModule,
+        *args,
+        save_path="/tmp",
+    )
+
+    time.sleep(3)
+
+    status = model_future.get_info().status
+    print("Final status was", status)
+    assert status == TrainingStatus.ERRORED
 
 
 ## Test Ray Backend

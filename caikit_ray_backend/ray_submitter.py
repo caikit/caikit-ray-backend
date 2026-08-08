@@ -76,13 +76,20 @@ def main():
     if model_path:
         error.type_check("<RYT70238308E>", str, model_path=model_path)
 
-    # Finally kick off trainig
+    timeout = runtime_env.get("training_timeout", float(60))
+
+    # Finally kick off training
     with alog.ContextTimer(log.debug, "Done training %s in: ", module_class):
-        ray.get(
-            ray_training_tasks.train_and_save.options(
-                num_cpus=num_cpus, num_gpus=num_gpus
-            ).remote(module_class, model_path, *args, **kwargs)
-        )
+        task = ray_training_tasks.train_and_save.options(
+            num_cpus=num_cpus, num_gpus=num_gpus
+        ).remote(module_class, model_path, *args, **kwargs)
+        ready, _ = ray.wait([task], timeout=timeout)
+        if ready:
+            ray.get(task)
+        else:
+            ray.cancel(task)
+            log.error("Task did not complete before time out.")
+            raise TimeoutError("Task did not complete before time out.")
 
 
 if __name__ == "__main__":
